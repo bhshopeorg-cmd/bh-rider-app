@@ -128,6 +128,9 @@
     background:var(--card); border-radius:var(--radius); padding:14px; margin-bottom:12px;
     border:1px solid var(--line);
   }
+  .oc-orderid{
+    font-size:11px; color:var(--text-soft); font-weight:700; margin-bottom:3px; letter-spacing:0.3px;
+  }
   .oc-top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
   .oc-name{font-weight:800; font-size:14.5px;}
   .oc-src{
@@ -199,20 +202,20 @@
 
 <div id="pickerScreen">
   <div class="picker-badge">BH</div>
-  <div class="picker-title">BH Store — Delivery Manager</div>
-  <div class="picker-sub">Aap kaun hain? Apna naam chunein taake sirf apny orders dikhein.</div>
+  <div class="picker-title">Welcome to the App</div>
+  <div class="picker-sub">Please select who you are.</div>
 
   <div class="picker-card">
     <h3>Store Owner</h3>
-    <button class="owner-btn" onclick="enterAsOwner()">🏪 Owner ki tarah dakhil hon</button>
+    <button class="owner-btn" onclick="enterAsOwner()">🏪 Continue as Owner</button>
   </div>
 
   <div class="picker-card">
     <h3>Rider</h3>
     <div class="rider-chip-list" id="riderPickList"></div>
-    <div class="no-riders" id="noRidersMsg" style="display:none;">Abhi koi rider add nahi hua. Neechay naam likh kar khud add karein.</div>
+    <div class="no-riders" id="noRidersMsg" style="display:none;">No riders added yet. Add your name below.</div>
     <div class="add-rider-row">
-      <input id="newRiderName" placeholder="Apna naam likhein...">
+      <input id="newRiderName" placeholder="Enter your name...">
       <button onclick="selfAddRider()">Add</button>
     </div>
   </div>
@@ -258,13 +261,17 @@
       <div class="chip" data-f="delivered" onclick="setFilter('delivered')">Delivered</div>
     </div>
     <div class="search-wrap">
-      <input class="search-input" id="searchInput" placeholder="Search by customer, phone, or area..." oninput="renderOrders()">
+      <input class="search-input" id="searchInput" placeholder="Search by order ID, customer, phone, or area..." oninput="renderOrders()">
     </div>
     <div class="content" id="ordersList"></div>
   </div>
 
   <div id="addView" style="display:none;">
     <div class="form-wrap">
+      <div class="field">
+        <label>Order ID</label>
+        <input id="f_orderid" placeholder="e.g. #1024">
+      </div>
       <div class="field">
         <label>Customer Name *</label>
         <input id="f_name" placeholder="e.g. Ahmed Ali">
@@ -496,7 +503,7 @@ function renderOrders(){
   let filtered = base.filter(o=>{
     if(currentFilter!=='all' && o.status!==currentFilter) return false;
     if(q){
-      const hay = (o.customer+' '+o.phone+' '+o.area).toLowerCase();
+      const hay = ((o.orderNo||'')+' '+o.customer+' '+o.phone+' '+o.area).toLowerCase();
       if(!hay.includes(q)) return false;
     }
     return true;
@@ -538,10 +545,13 @@ function renderOrders(){
       riderRow = `<div class="oc-rider-row">🛵 <select onchange="assignRider('${o.id}', this.value)">${options}</select></div>`;
     }
 
+    const displayOrderId = o.orderNo || (o.source==='shopify' ? o.id.replace('shopify-','') : '');
+
     return `
       <div class="order-card">
         <div class="oc-top">
           <div>
+            ${displayOrderId ? `<div class="oc-orderid">#${escapeHtml(displayOrderId)}</div>` : ''}
             <span class="oc-name">${escapeHtml(o.customer)}</span>
             <span class="oc-src ${o.source}">${o.source==='shopify'?'Shopify':'Manual'}</span>
           </div>
@@ -588,6 +598,7 @@ async function deleteOrder(id){
 }
 
 async function addManualOrder(){
+  const orderId = document.getElementById('f_orderid').value.trim();
   const name = document.getElementById('f_name').value.trim();
   const phone = document.getElementById('f_phone').value.trim();
   const amount = document.getElementById('f_amount').value.trim();
@@ -604,6 +615,7 @@ async function addManualOrder(){
 
   orders.push({
     id: 'manual-' + Date.now(),
+    orderNo: orderId,
     source: 'manual',
     customer: name,
     phone, amount, area, address, items, notes, rider,
@@ -612,7 +624,7 @@ async function addManualOrder(){
   });
   await saveOrders();
 
-  ['f_name','f_phone','f_amount','f_area','f_address','f_items','f_notes'].forEach(id=>document.getElementById(id).value='');
+  ['f_orderid','f_name','f_phone','f_amount','f_area','f_address','f_items','f_notes'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f_rider').value = '';
   showToast('✓ Order added');
   switchTab('orders');
@@ -657,6 +669,7 @@ async function syncShopify(){
       if(!orders.find(o=>o.id===id)){
         orders.push({
           id,
+          orderNo: so.orderId || '',
           source: 'shopify',
           customer: so.customer || 'Unknown',
           phone: so.phone || '',
