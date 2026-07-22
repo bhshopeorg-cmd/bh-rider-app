@@ -1,0 +1,25 @@
+{
+  "name": "BH Store Rider App",
+  "short_name": "BH Rider",
+  "description": "BH Store delivery and order management app for riders and owner",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0F1F3D",
+  "theme_color": "#0F1F3D",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
