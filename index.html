@@ -1,707 +1,163 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BH Store — Delivery Manager</title>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0F1F3D">
-<link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-192.png">
-<style>
-  :root{
-    --navy:#0F1F3D;
-    --navy-2:#16305C;
-    --orange:#FF6A2B;
-    --orange-dark:#E6551B;
-    --bg:#F5F6F8;
-    --card:#FFFFFF;
-    --text:#182233;
-    --text-soft:#6B7686;
-    --line:#E7E9EE;
-    --amber:#F5A524;
-    --green:#1E9E5A;
-    --red:#E0483C;
-    --radius:14px;
-  }
-  *{box-sizing:border-box;}
-  body{
-    margin:0; font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
-    background:var(--bg); color:var(--text);
-  }
-  #pickerScreen{
-    min-height:100vh; background:linear-gradient(160deg,var(--navy) 0%,var(--navy-2) 100%);
-    display:flex; flex-direction:column; align-items:center; justify-content:center; padding:30px 20px;
-    color:#fff;
-  }
-  .picker-badge{
-    background:var(--orange); width:64px; height:64px; border-radius:16px; display:flex; align-items:center;
-    justify-content:center; font-weight:800; font-size:24px; margin-bottom:14px;
-  }
-  .picker-title{font-size:20px; font-weight:800;}
-  .picker-sub{font-size:13px; color:#B8C4DE; margin-top:4px; margin-bottom:26px; text-align:center;}
-  .picker-card{
-    background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:var(--radius);
-    padding:18px; width:100%; max-width:360px; margin-bottom:14px;
-  }
-  .picker-card h3{margin:0 0 12px; font-size:13px; color:#B8C4DE; text-transform:uppercase; letter-spacing:0.5px;}
-  .owner-btn{
-    width:100%; background:var(--orange); color:#fff; border:none; padding:14px; border-radius:12px;
-    font-weight:800; font-size:14.5px; cursor:pointer;
-  }
-  .rider-chip-list{display:flex; flex-direction:column; gap:8px;}
-  .rider-pick-btn{
-    width:100%; background:rgba(255,255,255,0.1); color:#fff; border:1px solid rgba(255,255,255,0.2);
-    padding:12px 14px; border-radius:10px; font-weight:700; font-size:14px; cursor:pointer; text-align:left;
-    display:flex; align-items:center; gap:8px;
-  }
-  .add-rider-row{display:flex; gap:8px; margin-top:10px;}
-  .add-rider-row input{
-    flex:1; padding:11px 12px; border-radius:10px; border:none; font-size:13.5px;
-  }
-  .add-rider-row button{
-    background:var(--orange); color:#fff; border:none; padding:0 16px; border-radius:10px; font-weight:800; cursor:pointer;
-  }
-  .no-riders{font-size:12.5px; color:#8FA0C4;}
-  #appScreen{display:none;}
-  .topbar{
-    background:linear-gradient(135deg,var(--navy) 0%,var(--navy-2) 100%);
-    padding:18px 20px 26px; color:#fff; position:relative; overflow:hidden;
-  }
-  .topbar::after{
-    content:""; position:absolute; right:-40px; top:-40px; width:160px; height:160px;
-    background:var(--orange); opacity:0.15; border-radius:50%;
-  }
-  .brand-row{display:flex; align-items:center; justify-content:space-between; position:relative; z-index:1;}
-  .brand{display:flex; align-items:center; gap:10px;}
-  .brand-badge{
-    background:var(--orange); color:#fff; font-weight:800; font-size:15px;
-    width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center;
-    letter-spacing:-0.5px;
-  }
-  .brand-text .name{font-weight:800; font-size:16px; letter-spacing:0.3px;}
-  .brand-text .sub{font-size:11.5px; color:#B8C4DE; margin-top:1px;}
-  .top-actions{display:flex; gap:8px; align-items:center;}
-  .sync-btn{
-    background:var(--orange); color:#fff; border:none; padding:9px 14px; border-radius:10px;
-    font-weight:700; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer;
-    box-shadow:0 4px 12px rgba(255,106,43,0.35); white-space:nowrap;
-  }
-  .switch-btn{
-    background:rgba(255,255,255,0.12); color:#fff; border:1px solid rgba(255,255,255,0.25); padding:9px 12px;
-    border-radius:10px; font-size:12px; font-weight:700; cursor:pointer;
-  }
-  .sync-btn:active, .switch-btn:active{transform:scale(0.97);}
-  .sync-btn.loading{opacity:0.7; pointer-events:none;}
-  .spin{width:13px;height:13px;border:2px solid rgba(255,255,255,0.5);border-top-color:#fff;border-radius:50%;animation:sp 0.7s linear infinite;}
-  @keyframes sp{to{transform:rotate(360deg);}}
-  .tally-card{
-    margin-top:16px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15);
-    border-radius:var(--radius); padding:14px 16px; position:relative; z-index:1;
-    display:flex; justify-content:space-between; align-items:center;
-  }
-  .tally-label{font-size:11.5px; color:#B8C4DE; text-transform:uppercase; letter-spacing:0.5px; font-weight:600;}
-  .tally-value{font-size:24px; font-weight:800; margin-top:2px;}
-  .tally-sub{font-size:11px; color:#8FA0C4; margin-top:2px;}
-  .tally-icon{font-size:26px;}
-  .tabs{
-    display:flex; gap:6px; padding:12px 16px 0; background:var(--bg); position:sticky; top:0; z-index:5;
-  }
-  .tab{
-    flex:1; text-align:center; padding:10px 8px; border-radius:10px; font-size:12.5px; font-weight:700;
-    color:var(--text-soft); cursor:pointer; background:transparent; border:none;
-  }
-  .tab.active{background:var(--navy); color:#fff;}
-  .filters{display:flex; gap:8px; padding:12px 16px 4px; overflow-x:auto;}
-  .chip{
-    padding:7px 13px; border-radius:20px; background:#fff; border:1px solid var(--line);
-    font-size:12.5px; font-weight:600; color:var(--text-soft); white-space:nowrap; cursor:pointer;
-  }
-  .chip.active{background:var(--orange); border-color:var(--orange); color:#fff;}
-  .search-wrap{padding:8px 16px;}
-  .search-input{
-    width:100%; padding:11px 14px; border-radius:10px; border:1px solid var(--line); font-size:13.5px;
-    background:#fff;
-  }
-  .content{padding:8px 16px 90px;}
-  .order-card{
-    background:var(--card); border-radius:var(--radius); padding:14px; margin-bottom:12px;
-    border:1px solid var(--line);
-  }
-  .oc-orderid{
-    font-size:11px; color:var(--text-soft); font-weight:700; margin-bottom:3px; letter-spacing:0.3px;
-  }
-  .oc-top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
-  .oc-name{font-weight:800; font-size:14.5px;}
-  .oc-src{
-    font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:6px; margin-left:6px;
-    text-transform:uppercase; letter-spacing:0.3px;
-  }
-  .oc-src.shopify{background:#E6F4EA; color:var(--green);}
-  .oc-src.manual{background:#FDEDE4; color:var(--orange-dark);}
-  .oc-amount{font-weight:800; font-size:15px; color:var(--navy); white-space:nowrap;}
-  .oc-meta{font-size:12.5px; color:var(--text-soft); margin-top:6px; line-height:1.5;}
-  .oc-meta a{color:var(--navy-2); text-decoration:none; font-weight:600;}
-  .oc-items{font-size:12px; color:var(--text-soft); margin-top:6px; background:#F7F8FA; padding:7px 9px; border-radius:8px;}
-  .oc-rider-row{margin-top:10px; display:flex; align-items:center; gap:8px;}
-  .oc-rider-row select{
-    flex:1; padding:8px 10px; border-radius:8px; border:1px solid var(--line); font-size:12.5px; background:#fff;
-  }
-  .rider-tag{
-    font-size:11px; font-weight:700; color:var(--navy-2); background:#EAF0FB; padding:5px 10px; border-radius:8px;
-  }
-  .oc-status-row{display:flex; align-items:center; justify-content:space-between; margin-top:12px; gap:8px; flex-wrap:wrap;}
-  .status-badge{font-size:11px; font-weight:700; padding:5px 10px; border-radius:8px;}
-  .status-pending{background:#FDEDE4; color:var(--orange-dark);}
-  .status-out{background:#FEF3D6; color:#946200;}
-  .status-delivered{background:#E6F4EA; color:var(--green);}
-  .oc-actions{display:flex; gap:6px; flex-wrap:wrap;}
-  .btn-sm{
-    border:none; padding:9px 13px; border-radius:8px; font-size:12.5px; font-weight:700; cursor:pointer;
-  }
-  .btn-out{background:var(--navy); color:#fff;}
-  .btn-delivered{background:var(--green); color:#fff;}
-  .btn-del{background:#fff; color:var(--red); border:1px solid var(--red);}
-  .btn-undo{background:#fff; color:var(--text-soft); border:1px solid var(--line);}
-  .empty{text-align:center; padding:60px 20px; color:var(--text-soft);}
-  .empty .e-icon{font-size:38px; margin-bottom:10px;}
-  .form-wrap{padding:16px;}
-  .field{margin-bottom:14px;}
-  .field label{font-size:12.5px; font-weight:700; color:var(--text-soft); display:block; margin-bottom:6px;}
-  .field input, .field textarea, .field select{
-    width:100%; padding:11px 13px; border-radius:10px; border:1px solid var(--line); font-size:14px;
-    background:#fff; font-family:inherit;
-  }
-  .field textarea{resize:vertical; min-height:60px;}
-  .row2{display:flex; gap:10px;}
-  .row2 .field{flex:1;}
-  .submit-btn{
-    width:100%; background:var(--orange); color:#fff; border:none; padding:14px; border-radius:12px;
-    font-weight:800; font-size:14.5px; cursor:pointer; margin-top:6px;
-    box-shadow:0 4px 14px rgba(255,106,43,0.3);
-  }
-  .rider-manage-row{
-    display:flex; align-items:center; justify-content:space-between; background:#fff; border:1px solid var(--line);
-    border-radius:10px; padding:11px 13px; margin-bottom:8px;
-  }
-  .rider-manage-row .rname{font-weight:700; font-size:13.5px;}
-  .rider-manage-row .rcount{font-size:11.5px; color:var(--text-soft); margin-top:2px;}
-  .remove-rider-btn{background:none; border:none; color:var(--red); font-weight:700; font-size:12px; cursor:pointer;}
-  .toast{
-    position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--navy); color:#fff;
-    padding:11px 18px; border-radius:10px; font-size:13px; font-weight:600; z-index:50; opacity:0;
-    transition:opacity 0.25s; pointer-events:none; max-width:88%; text-align:center;
-  }
-  .toast.show{opacity:1;}
-  .rider-mode-note{
-    font-size:11.5px; color:var(--text-soft); text-align:center; padding:6px 16px 0;
-  }
-</style>
-</head>
-<body>
+/**
+ * BH Store - Rider Delivery App Backend
+ * Deploy: Extensions > Apps Script > paste this file > Deploy > New deployment > Web app
+ *   Execute as: Me
+ *   Who has access: Anyone
+ * Copy the deployment URL and paste it into API_URL in BH_Store_Rider_App.html
+ */
 
-<div id="pickerScreen">
-  <div class="picker-badge">BH</div>
-  <div class="picker-title">Welcome to the App</div>
-  <div class="picker-sub">Please select who you are.</div>
+// ---------- CONFIG ----------
+var OWNER_KEY = "bhstore2026"; // change this to your own secret, then update it in the HTML file too
+var SHEET_ORDERS = "Orders";
+var SHEET_RIDERS = "Riders";
 
-  <div class="picker-card">
-    <h3>Store Owner</h3>
-    <button class="owner-btn" onclick="enterAsOwner()">🏪 Continue as Owner</button>
-  </div>
-
-  <div class="picker-card">
-    <h3>Rider</h3>
-    <div class="rider-chip-list" id="riderPickList"></div>
-    <div class="no-riders" id="noRidersMsg" style="display:none;">No riders added yet. Add your name below.</div>
-    <div class="add-rider-row">
-      <input id="newRiderName" placeholder="Enter your name...">
-      <button onclick="selfAddRider()">Add</button>
-    </div>
-  </div>
-</div>
-
-<div id="appScreen">
-  <div class="topbar">
-    <div class="brand-row">
-      <div class="brand">
-        <div class="brand-badge">BH</div>
-        <div class="brand-text">
-          <div class="name">BH STORE</div>
-          <div class="sub" id="modeLabel">Delivery Manager</div>
-        </div>
-      </div>
-      <div class="top-actions">
-        <button class="sync-btn" id="syncBtn" onclick="syncShopify()" style="display:none;">⟳ Sync</button>
-        <button class="switch-btn" onclick="goToPicker()">Switch User</button>
-      </div>
-    </div>
-    <div class="tally-card">
-      <div>
-        <div class="tally-label" id="tallyLabel">Cash to Collect</div>
-        <div class="tally-value" id="tallyValue">BHD 0.00</div>
-        <div class="tally-sub" id="tallySub">0 orders pending</div>
-      </div>
-      <div class="tally-icon">💰</div>
-    </div>
-  </div>
-
-  <div class="tabs" id="ownerTabs" style="display:none;">
-    <button class="tab active" id="tabOrders" onclick="switchTab('orders')">All Orders</button>
-    <button class="tab" id="tabAdd" onclick="switchTab('add')">+ Manual Order</button>
-    <button class="tab" id="tabRiders" onclick="switchTab('riders')">Riders</button>
-  </div>
-  <div class="rider-mode-note" id="riderModeNote" style="display:none;"></div>
-
-  <div id="ordersView">
-    <div class="filters">
-      <div class="chip active" data-f="all" onclick="setFilter('all')">All</div>
-      <div class="chip" data-f="pending" onclick="setFilter('pending')">Pending</div>
-      <div class="chip" data-f="out" onclick="setFilter('out')">Out for Delivery</div>
-      <div class="chip" data-f="delivered" onclick="setFilter('delivered')">Delivered</div>
-    </div>
-    <div class="search-wrap">
-      <input class="search-input" id="searchInput" placeholder="Search by order ID, customer, phone, or area..." oninput="renderOrders()">
-    </div>
-    <div class="content" id="ordersList"></div>
-  </div>
-
-  <div id="addView" style="display:none;">
-    <div class="form-wrap">
-      <div class="field">
-        <label>Order ID</label>
-        <input id="f_orderid" placeholder="e.g. #1024">
-      </div>
-      <div class="field">
-        <label>Customer Name *</label>
-        <input id="f_name" placeholder="e.g. Ahmed Ali">
-      </div>
-      <div class="row2">
-        <div class="field">
-          <label>Phone *</label>
-          <input id="f_phone" placeholder="+973 ..." type="tel">
-        </div>
-        <div class="field">
-          <label>Amount (BHD) *</label>
-          <input id="f_amount" placeholder="0.00" type="number" step="0.01">
-        </div>
-      </div>
-      <div class="field">
-        <label>Area / Block</label>
-        <input id="f_area" placeholder="e.g. Riffa, Block 512">
-      </div>
-      <div class="field">
-        <label>Full Address</label>
-        <textarea id="f_address" placeholder="House/Building, Road, Block..."></textarea>
-      </div>
-      <div class="field">
-        <label>Items</label>
-        <textarea id="f_items" placeholder="e.g. Stanley Tumbler x2, Massage Gun x1"></textarea>
-      </div>
-      <div class="field">
-        <label>Assign to Rider</label>
-        <select id="f_rider"><option value="">Unassigned</option></select>
-      </div>
-      <div class="field">
-        <label>Notes (optional)</label>
-        <input id="f_notes" placeholder="e.g. Call before arriving">
-      </div>
-      <button class="submit-btn" onclick="addManualOrder()">Add Order</button>
-    </div>
-  </div>
-
-  <div id="ridersView" style="display:none;">
-    <div class="form-wrap">
-      <div class="field">
-        <label>Add New Rider</label>
-        <div class="add-rider-row" style="margin-top:0;">
-          <input id="newRiderNameOwner" placeholder="Rider ka naam">
-          <button onclick="ownerAddRider()">Add</button>
-        </div>
-      </div>
-      <div id="riderManageList"></div>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<script>
-let orders = [];
-let riders = [];
-let currentFilter = 'all';
-let currentRole = null;
-
-function showToast(msg){
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 2200);
-}
-function escapeHtml(s){
-  return String(s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-}
-function fmtAmount(n){
-  const v = parseFloat(n)||0;
-  return 'BHD ' + v.toFixed(2);
-}
-
-async function loadData(){
-  try{
-    const res = await window.storage.get('orders-list', true);
-    orders = res && res.value ? JSON.parse(res.value) : [];
-  }catch(e){ orders = []; }
-  try{
-    const res2 = await window.storage.get('riders-list', true);
-    riders = res2 && res2.value ? JSON.parse(res2.value) : [];
-  }catch(e){ riders = []; }
-}
-async function saveOrders(){
-  try{ await window.storage.set('orders-list', JSON.stringify(orders), true); }
-  catch(e){ showToast('⚠️ Could not save — try again'); }
-}
-async function saveRiders(){
-  try{ await window.storage.set('riders-list', JSON.stringify(riders), true); }
-  catch(e){ showToast('⚠️ Could not save — try again'); }
-}
-
-function renderPicker(){
-  const list = document.getElementById('riderPickList');
-  const noMsg = document.getElementById('noRidersMsg');
-  if(riders.length===0){
-    list.innerHTML = '';
-    noMsg.style.display = 'block';
-  } else {
-    noMsg.style.display = 'none';
-    list.innerHTML = riders.map(r=>`<button class="rider-pick-btn" onclick="enterAsRider('${escapeHtml(r)}')">🛵 ${escapeHtml(r)}</button>`).join('');
-  }
-}
-
-async function selfAddRider(){
-  const input = document.getElementById('newRiderName');
-  const name = input.value.trim();
-  if(!name){ showToast('⚠️ Apna naam likhein'); return; }
-  if(riders.includes(name)){ enterAsRider(name); return; }
-  riders.push(name);
-  await saveRiders();
-  input.value = '';
-  renderPicker();
-  enterAsRider(name);
-}
-
-function goToPicker(){
-  currentRole = null;
-  document.getElementById('appScreen').style.display = 'none';
-  document.getElementById('pickerScreen').style.display = 'flex';
-  renderPicker();
-}
-
-async function enterAsOwner(){
-  currentRole = {type:'owner'};
-  document.getElementById('pickerScreen').style.display = 'none';
-  document.getElementById('appScreen').style.display = 'block';
-  document.getElementById('ownerTabs').style.display = 'flex';
-  document.getElementById('riderModeNote').style.display = 'none';
-  document.getElementById('syncBtn').style.display = 'flex';
-  document.getElementById('modeLabel').textContent = 'Delivery Manager — Owner View';
-  document.getElementById('tallyLabel').textContent = 'Cash to Collect (All)';
-  switchTab('orders');
-  populateRiderDropdown();
-  renderRidersManage();
-  renderOrders();
-}
-
-async function enterAsRider(name){
-  currentRole = {type:'rider', name};
-  document.getElementById('pickerScreen').style.display = 'none';
-  document.getElementById('appScreen').style.display = 'block';
-  document.getElementById('ownerTabs').style.display = 'none';
-  document.getElementById('syncBtn').style.display = 'none';
-  document.getElementById('riderModeNote').style.display = 'block';
-  document.getElementById('riderModeNote').textContent = `Aap "${name}" ki tarah dekh rahy hain — sirf apny orders.`;
-  document.getElementById('modeLabel').textContent = 'My Deliveries — ' + name;
-  document.getElementById('tallyLabel').textContent = 'Cash to Collect (Mine)';
-  document.getElementById('ordersView').style.display = 'block';
-  document.getElementById('addView').style.display = 'none';
-  document.getElementById('ridersView').style.display = 'none';
-  renderOrders();
-}
-
-function switchTab(tab){
-  if(currentRole && currentRole.type!=='owner') return;
-  document.getElementById('tabOrders').classList.toggle('active', tab==='orders');
-  document.getElementById('tabAdd').classList.toggle('active', tab==='add');
-  document.getElementById('tabRiders').classList.toggle('active', tab==='riders');
-  document.getElementById('ordersView').style.display = tab==='orders' ? 'block':'none';
-  document.getElementById('addView').style.display = tab==='add' ? 'block':'none';
-  document.getElementById('ridersView').style.display = tab==='riders' ? 'block':'none';
-  if(tab==='riders') renderRidersManage();
-}
-
-function setFilter(f){
-  currentFilter = f;
-  document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('active', c.dataset.f===f));
-  renderOrders();
-}
-
-function populateRiderDropdown(){
-  const sel = document.getElementById('f_rider');
-  sel.innerHTML = '<option value="">Unassigned</option>' + riders.map(r=>`<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`).join('');
-}
-
-function renderRidersManage(){
-  const list = document.getElementById('riderManageList');
-  if(riders.length===0){
-    list.innerHTML = `<div class="empty" style="padding:30px 10px;"><div class="e-icon">🛵</div>Abhi koi rider add nahi hua.</div>`;
-    return;
-  }
-  list.innerHTML = riders.map(r=>{
-    const count = orders.filter(o=>o.rider===r && o.status!=='delivered').length;
-    return `
-      <div class="rider-manage-row">
-        <div>
-          <div class="rname">${escapeHtml(r)}</div>
-          <div class="rcount">${count} active order${count!==1?'s':''}</div>
-        </div>
-        <button class="remove-rider-btn" onclick="removeRider('${escapeHtml(r)}')">Remove</button>
-      </div>
-    `;
-  }).join('');
-}
-
-async function ownerAddRider(){
-  const input = document.getElementById('newRiderNameOwner');
-  const name = input.value.trim();
-  if(!name){ showToast('⚠️ Rider ka naam likhein'); return; }
-  if(riders.includes(name)){ showToast('Ye rider pehle se list mein hai'); return; }
-  riders.push(name);
-  await saveRiders();
-  input.value = '';
-  populateRiderDropdown();
-  renderRidersManage();
-  showToast('✓ Rider added: ' + name);
-}
-
-async function removeRider(name){
-  riders = riders.filter(r=>r!==name);
-  await saveRiders();
-  populateRiderDropdown();
-  renderRidersManage();
-  showToast('Rider removed');
-}
-
-function renderOrders(){
-  const list = document.getElementById('ordersList');
-  const q = (document.getElementById('searchInput').value||'').toLowerCase();
-  const isRiderMode = currentRole && currentRole.type==='rider';
-
-  let base = orders;
-  if(isRiderMode){
-    base = orders.filter(o=>o.rider===currentRole.name);
-  }
-
-  let filtered = base.filter(o=>{
-    if(currentFilter!=='all' && o.status!==currentFilter) return false;
-    if(q){
-      const hay = ((o.orderNo||'')+' '+o.customer+' '+o.phone+' '+o.area).toLowerCase();
-      if(!hay.includes(q)) return false;
+// ---------- HELPERS ----------
+function getSheet_(name) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(name);
+  if (!sh) {
+    sh = ss.insertSheet(name);
+    if (name === SHEET_ORDERS) {
+      sh.appendRow(["OrderID","CustomerName","Phone","Address","Amount","RiderEmail","Status","CashCollected","CreatedAt","DeliveredAt"]);
+    } else if (name === SHEET_RIDERS) {
+      sh.appendRow(["Email","Name","Phone","Status","RegisteredAt"]);
     }
-    return true;
-  });
+  }
+  return sh;
+}
 
-  filtered.sort((a,b)=>{
-    const order = {pending:0, out:1, delivered:2};
-    if(order[a.status]!==order[b.status]) return order[a.status]-order[b.status];
-    return (b.createdAt||0)-(a.createdAt||0);
-  });
+function sheetToObjects_(sheet) {
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var rows = [];
+  for (var i = 1; i < data.length; i++) {
+    var obj = {};
+    for (var j = 0; j < headers.length; j++) obj[headers[j]] = data[i][j];
+    obj._row = i + 1;
+    rows.push(obj);
+  }
+  return rows;
+}
 
-  updateTally(base);
+function jsonOut_(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
 
-  if(filtered.length===0){
-    list.innerHTML = `<div class="empty"><div class="e-icon">📦</div>${isRiderMode? 'Aap k liye abhi koi order assign nahi hua.' : 'Koi order nahi mila.'}</div>`;
-    return;
+function findRowByValue_(sheet, colIndex, value) {
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][colIndex]).toLowerCase() === String(value).toLowerCase()) return i + 1;
+  }
+  return -1;
+}
+
+// ---------- GET ----------
+function doGet(e) {
+  var action = e.parameter.action;
+
+  if (action === "bootstrap") {
+    var email = (e.parameter.email || "").toLowerCase();
+    var riders = sheetToObjects_(getSheet_(SHEET_RIDERS));
+    var found = null;
+    for (var i = 0; i < riders.length; i++) {
+      if (String(riders[i].Email).toLowerCase() === email) { found = riders[i]; break; }
+    }
+    if (!found) return jsonOut_({ registered: false, approved: false });
+    return jsonOut_({ registered: true, approved: (found.Status === "Approved"), name: found.Name });
   }
 
-  list.innerHTML = filtered.map(o=>{
-    const statusLabel = o.status==='pending' ? 'Pending' : o.status==='out' ? 'Out for Delivery' : 'Delivered';
-    const statusClass = 'status-'+o.status;
-    let actions = '';
-    if(o.status==='pending'){
-      actions += `<button class="btn-sm btn-out" onclick="setStatus('${o.id}','out')">Out for Delivery</button>`;
-    } else if(o.status==='out'){
-      actions += `<button class="btn-sm btn-delivered" onclick="setStatus('${o.id}','delivered')">Mark Delivered</button>`;
-    } else {
-      actions += `<button class="btn-sm btn-undo" onclick="setStatus('${o.id}','out')">Undo</button>`;
-    }
-    if(!isRiderMode && o.source==='manual'){
-      actions += `<button class="btn-sm btn-del" onclick="deleteOrder('${o.id}')">Delete</button>`;
-    }
-
-    let riderRow = '';
-    if(!isRiderMode){
-      const options = ['<option value="">Unassigned</option>'].concat(
-        riders.map(r=>`<option value="${escapeHtml(r)}" ${o.rider===r?'selected':''}>${escapeHtml(r)}</option>`)
-      ).join('');
-      riderRow = `<div class="oc-rider-row">🛵 <select onchange="assignRider('${o.id}', this.value)">${options}</select></div>`;
-    }
-
-    const displayOrderId = o.orderNo || (o.source==='shopify' ? o.id.replace('shopify-','') : '');
-
-    return `
-      <div class="order-card">
-        <div class="oc-top">
-          <div>
-            ${displayOrderId ? `<div class="oc-orderid">#${escapeHtml(displayOrderId)}</div>` : ''}
-            <span class="oc-name">${escapeHtml(o.customer)}</span>
-            <span class="oc-src ${o.source}">${o.source==='shopify'?'Shopify':'Manual'}</span>
-          </div>
-          <div class="oc-amount">${fmtAmount(o.amount)}</div>
-        </div>
-        <div class="oc-meta">
-          📞 <a href="tel:${o.phone}">${escapeHtml(o.phone||'—')}</a> &nbsp;·&nbsp; 📍 ${escapeHtml(o.area||'—')}
-          ${o.address ? '<br>'+escapeHtml(o.address) : ''}
-        </div>
-        ${o.items ? `<div class="oc-items">🛍️ ${escapeHtml(o.items)}</div>` : ''}
-        ${o.notes ? `<div class="oc-items">📝 ${escapeHtml(o.notes)}</div>` : ''}
-        ${riderRow}
-        <div class="oc-status-row">
-          <span class="status-badge ${statusClass}">${statusLabel}</span>
-          <div class="oc-actions">${actions}</div>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-function updateTally(scope){
-  const owed = scope.filter(o=>o.status!=='delivered');
-  const total = owed.reduce((s,o)=>s+(parseFloat(o.amount)||0),0);
-  document.getElementById('tallyValue').textContent = fmtAmount(total);
-  document.getElementById('tallySub').textContent = owed.length + ' order' + (owed.length!==1?'s':'') + ' pending';
-}
-
-async function setStatus(id, status){
-  const o = orders.find(x=>x.id===id);
-  if(o){ o.status = status; await saveOrders(); renderOrders(); showToast('Status updated ✓'); }
-}
-
-async function assignRider(id, riderName){
-  const o = orders.find(x=>x.id===id);
-  if(o){ o.rider = riderName || ''; await saveOrders(); renderOrders(); renderRidersManage(); showToast(riderName? ('Assigned to '+riderName) : 'Unassigned'); }
-}
-
-async function deleteOrder(id){
-  orders = orders.filter(o=>o.id!==id);
-  await saveOrders();
-  renderOrders();
-  showToast('Order deleted');
-}
-
-async function addManualOrder(){
-  const orderId = document.getElementById('f_orderid').value.trim();
-  const name = document.getElementById('f_name').value.trim();
-  const phone = document.getElementById('f_phone').value.trim();
-  const amount = document.getElementById('f_amount').value.trim();
-  const area = document.getElementById('f_area').value.trim();
-  const address = document.getElementById('f_address').value.trim();
-  const items = document.getElementById('f_items').value.trim();
-  const notes = document.getElementById('f_notes').value.trim();
-  const rider = document.getElementById('f_rider').value;
-
-  if(!name || !phone || !amount){
-    showToast('⚠️ Name, phone, and amount are required');
-    return;
+  if (action === "riderOrders") {
+    var email2 = (e.parameter.email || "").toLowerCase();
+    var all = sheetToObjects_(getSheet_(SHEET_ORDERS));
+    var mine = all.filter(function(o) { return String(o.RiderEmail).toLowerCase() === email2; })
+                  .map(function(o) {
+                    return {
+                      orderId: o.OrderID, customerName: o.CustomerName, phone: o.Phone,
+                      address: o.Address, amount: o.Amount, status: o.Status,
+                      cashCollected: o.CashCollected, createdAt: o.CreatedAt
+                    };
+                  });
+    return jsonOut_({ orders: mine });
   }
 
-  orders.push({
-    id: 'manual-' + Date.now(),
-    orderNo: orderId,
-    source: 'manual',
-    customer: name,
-    phone, amount, area, address, items, notes, rider,
-    status: 'pending',
-    createdAt: Date.now()
-  });
-  await saveOrders();
-
-  ['f_orderid','f_name','f_phone','f_amount','f_area','f_address','f_items','f_notes'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('f_rider').value = '';
-  showToast('✓ Order added');
-  switchTab('orders');
-  renderOrders();
-}
-
-async function syncShopify(){
-  const btn = document.getElementById('syncBtn');
-  btn.classList.add('loading');
-  btn.innerHTML = '<span class="spin"></span> Syncing...';
-  try{
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 1000,
-        messages: [
-          { role: "user", content: "Use the Shopify tools to fetch the 15 most recent unfulfilled orders (not yet delivered/shipped). For each order return: the order id, customer full name, phone number if available, shipping address, total price, and a short comma-separated list of line item names with quantities. Respond with ONLY a raw JSON array, no markdown fences, no other text, in this exact shape: [{\"orderId\":\"...\",\"customer\":\"...\",\"phone\":\"...\",\"address\":\"...\",\"amount\":\"0.00\",\"items\":\"...\"}]" }
-        ],
-        mcp_servers: [
-          { "type": "url", "url": "https://setup.shopify.com/mcp", "name": "shopify-mcp" }
-        ]
-      })
-    });
-    const data = await response.json();
-
-    const textBlocks = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n');
-    let clean = textBlocks.replace(/```json|```/g,'').trim();
-
-    let shopifyOrders = [];
-    try{
-      shopifyOrders = JSON.parse(clean);
-    }catch(e){
-      const match = clean.match(/\[[\s\S]*\]/);
-      if(match) shopifyOrders = JSON.parse(match[0]);
-    }
-
-    let added = 0;
-    shopifyOrders.forEach(so=>{
-      const id = 'shopify-' + so.orderId;
-      if(!orders.find(o=>o.id===id)){
-        orders.push({
-          id,
-          orderNo: so.orderId || '',
-          source: 'shopify',
-          customer: so.customer || 'Unknown',
-          phone: so.phone || '',
-          amount: so.amount || '0.00',
-          area: '',
-          address: so.address || '',
-          items: so.items || '',
-          notes: '',
-          rider: '',
-          status: 'pending',
-          createdAt: Date.now()
-        });
-        added++;
-      }
-    });
-
-    await saveOrders();
-    renderOrders();
-    showToast(added>0 ? `✓ ${added} new Shopify order${added!==1?'s':''} synced` : 'No new Shopify orders found');
-  }catch(e){
-    showToast('⚠️ Sync failed — check connection');
-  }finally{
-    btn.classList.remove('loading');
-    btn.innerHTML = '⟳ Sync';
+  if (action === "ownerData") {
+    if (e.parameter.key !== OWNER_KEY) return jsonOut_({ error: "unauthorized" });
+    var orders = sheetToObjects_(getSheet_(SHEET_ORDERS));
+    var ridersList = sheetToObjects_(getSheet_(SHEET_RIDERS));
+    return jsonOut_({ orders: orders, riders: ridersList });
   }
+
+  if (action === "approvedRiders") {
+    if (e.parameter.key !== OWNER_KEY) return jsonOut_({ error: "unauthorized" });
+    var r = sheetToObjects_(getSheet_(SHEET_RIDERS)).filter(function(x){ return x.Status === "Approved"; });
+    return jsonOut_({ riders: r });
+  }
+
+  return jsonOut_({ error: "unknown action" });
 }
 
-(async function init(){
-  await loadData();
-  renderPicker();
-})();
-</script>
+// ---------- POST ----------
+function doPost(e) {
+  var body = {};
+  try { body = JSON.parse(e.postData.contents); } catch (err) { return jsonOut_({ error: "bad request" }); }
+  var action = body.action;
 
-</body>
-</html>
+  if (action === "registerRider") {
+    var email = String(body.email || "").toLowerCase().trim();
+    var name = body.name || "";
+    var phone = body.phone || "";
+    if (!email) return jsonOut_({ error: "email required" });
+    var sh = getSheet_(SHEET_RIDERS);
+    var row = findRowByValue_(sh, 0, email);
+    if (row > 0) {
+      var status = sh.getRange(row, 4).getValue();
+      return jsonOut_({ ok: true, alreadyRegistered: true, approved: status === "Approved" });
+    }
+    sh.appendRow([email, name, phone, "Pending", new Date()]);
+    return jsonOut_({ ok: true, alreadyRegistered: false, approved: false });
+  }
+
+  if (action === "approveRider") {
+    if (body.key !== OWNER_KEY) return jsonOut_({ error: "unauthorized" });
+    var sh2 = getSheet_(SHEET_RIDERS);
+    var row2 = findRowByValue_(sh2, 0, String(body.email || "").toLowerCase());
+    if (row2 < 0) return jsonOut_({ error: "rider not found" });
+    sh2.getRange(row2, 4).setValue("Approved");
+    return jsonOut_({ ok: true });
+  }
+
+  if (action === "revokeRider") {
+    if (body.key !== OWNER_KEY) return jsonOut_({ error: "unauthorized" });
+    var sh2b = getSheet_(SHEET_RIDERS);
+    var row2b = findRowByValue_(sh2b, 0, String(body.email || "").toLowerCase());
+    if (row2b < 0) return jsonOut_({ error: "rider not found" });
+    sh2b.getRange(row2b, 4).setValue("Pending");
+    return jsonOut_({ ok: true });
+  }
+
+  if (action === "addOrder") {
+    if (body.key !== OWNER_KEY) return jsonOut_({ error: "unauthorized" });
+    var sh3 = getSheet_(SHEET_ORDERS);
+    var orderId = "BH" + Utilities.formatDate(new Date(), Session.getScriptTimeZone() || "GMT", "yyMMddHHmmss");
+    sh3.appendRow([
+      orderId, body.customerName || "", body.phone || "", body.address || "",
+      body.amount || 0, String(body.riderEmail || "").toLowerCase(), "Pending", false, new Date(), ""
+    ]);
+    return jsonOut_({ ok: true, orderId: orderId });
+  }
+
+  if (action === "updateOrderStatus") {
+    var email3 = String(body.email || "").toLowerCase();
+    var sh4 = getSheet_(SHEET_ORDERS);
+    var row4 = findRowByValue_(sh4, 0, body.orderId);
+    if (row4 < 0) return jsonOut_({ error: "order not found" });
+    var riderOnRow = String(sh4.getRange(row4, 6).getValue()).toLowerCase();
+    if (riderOnRow !== email3) return jsonOut_({ error: "unauthorized" });
+    sh4.getRange(row4, 7).setValue("Delivered");
+    sh4.getRange(row4, 8).setValue(body.cashCollected ? true : false);
+    sh4.getRange(row4, 10).setValue(new Date());
+    return jsonOut_({ ok: true });
+  }
+
+  return jsonOut_({ error: "unknown action" });
+}
